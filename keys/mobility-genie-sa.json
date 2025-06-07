@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "mobility-innovator",
+  "private_key_id": "4dfda65c37ad64424b139463bf232e11b52bfdf0",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCz//aEuDx41tw5\nUto0pX5/TmtpUTujqeX8up8tgX38Uy1WAq4Zq97zxRqXktR0GyUTmomadlZLO2U2\nFRlvYjNQxKGF52B6o4o35C09rwhB3HMH56Eo6wb8+WmwJbG6d8spakGV1H/4Lp5Q\nTJj4BqJGykW/1VsXaGKOhs0lDKyztGxoC6bBT9hOBpmOKufmht8wyGY7WypI4ddp\n7iJWXEQrytGiHl9leqLsL2OR04LC9QC3B0ODgGE02w3qHy7034zTTINhAS8qxnFm\nDbWH5RxYt40r5AkxLfEwsnqHeyLNbpnSlXqgPRfvXi4IoBTto4q3xrtH45bQmgIF\nmwnqG039AgMBAAECggEAAkRHnSdAZH/4+P3UNdQc5WSEhMIbOQ+AKaN9/3g0faap\nTDGvci8dMr7fyI3dGaZn3DkJ4SvHujdoXS4WpAKKeLEC0ByR6FyoqaIfEbpJ2KGt\nwlxsrDoj3Enik1XK/BKn681+cvET0kYs0M0OIuPbS+UeZYqKlNJhmPLiOkSDfj9s\nSe0HGj4oBJX4u7X+xRWuwGJZDuh5LFxjGbNlBAL7Sg6diJMjbwf2HcwmggIhxoNP\nzPxwJrTGHvcuKRD3nm2vzrNteUuOsdrRHZRlvuWKCiS+ZsxY8jU/nlw4gWG9/u7M\n4sbdmvEY5ESCaNkWSLgdgvHhFdCc3dOL/8zqkT7uwQKBgQDk7SNmEalBdScgB4PJ\n/ZRs5oIgDWDfnEOpzuvnIiTvqjPYXgdtWAOYYW1fWQeRxI9mXSrJ2Ni2b43UDBSy\nApTbbxIiwpAsJ9wBmSKLh8XYsVxy5MQ6iKrmDYO0+Q/Rd6wtNFPu9Z8Ev68m3EWx\n8mCMnEnmL5txFJybdRssHjgv3QKBgQDJSY0EVQ6Tw2FIjWf30yfJtkhurE7yyWpz\nTxtSECRQrcpYGB0FykeBW46luD3RN2IAIAecdMxSufq1F2rmWbUbqqFeUQIfNDOO\nyh90SvnINBA1b/37lm3xO9yU+tDhhOjZ39B0rde6m1mzpvjqOPVvfojD8XJWy1cR\nlrLPQqDEoQKBgQC4aC3zspZdHDoAGw2WUKaXcrevihdXCVGYIA73iRGn3bsVt+jT\ns+pxfUnVXKo0SdoZ40LshblMfGALSBADtQCkIrzBM2lfqFwZDXo+W4iMHZMTGiTX\n4e+IkapexaJwYa5YW6ag/0qxUJeO/jFGPrB3lA4TVpYoaSoeMB9LUqyAIQKBgGZ4\nNfy1nEUm2piHvBzSdtfeHwOQXmSEmtd2tw7Qvtv/jRnJtMSk1EALLxQ4NegTDKXJ\nqHZCk12t5e5YrIf1tRgPhjSwgqcF+RVA2kBmhsAfmPzLNX3ld7St575D7SBRfASm\nRsWPVlpeCY1GfEMomfGXdeJiQPXkcD+4+vA+F//hAoGBALVHYiaNXKoMnSsPnYka\nppHEtTzGO74Y1xjaCzQuijZEISWjJdhNHkKP048GPldViYP8wZRGFGZcxVhUVS0R\n3wTZ06OY3dRaq8s/VoFknroNQ/PaPLylRQDctxa3YbOe61MOhnMAiGuSuCFn4QfX\num8oG9ssNGk2SZ3gbW4mODvO\n-----END PRIVATE KEY-----\n",
+  "client_email": "mobility-innovator@mobility-innovator.iam.gserviceaccount.com",
+  "client_id": "100933059707139726064",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/mobility-innovator%40mobility-innovator.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

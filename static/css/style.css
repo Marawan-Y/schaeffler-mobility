@@ -1,0 +1,680 @@
+/* Schaeffler Brand Colors */
+:root {
+    --schaeffler-green: #00B140;
+    --schaeffler-dark: #003826;
+    --schaeffler-light: #e6f4ea;
+    --schaeffler-gray: #6c757d;
+    --schaeffler-blue: #0066CC;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f7fa;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+/* Schaeffler Specific Styles */
+.schaeffler-header {
+    background: linear-gradient(135deg, var(--schaeffler-dark) 0%, var(--schaeffler-green) 100%);
+    color: white;
+    padding: 1.5rem 0;
+    box-shadow: var(--shadow-md);
+}
+
+.logo {
+    height: 50px;
+    filter: brightness(0) invert(1);
+}
+
+.btn-schaeffler {
+    background: var(--schaeffler-green);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-schaeffler:hover {
+    background: var(--schaeffler-dark);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-outline-schaeffler {
+    background: transparent;
+    color: var(--schaeffler-green);
+    border: 2px solid var(--schaeffler-green);
+    border-radius: 25px;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-schaeffler:hover {
+    background: var(--schaeffler-green);
+    color: white;
+}
+
+.bg-schaeffler {
+    background: var(--schaeffler-green) !important;
+}
+
+/* Form Styles */
+.form-select, .form-control {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus, .form-control:focus {
+    border-color: var(--schaeffler-green);
+    box-shadow: 0 0 0 0.2rem rgba(0, 177, 64, 0.25);
+}
+
+/* Card Styles */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Progress Bar */
+.progress-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.progress {
+    background: #e0e0e0;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: var(--schaeffler-green);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Trend Cards */
+.trends-container {
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.trend-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.trend-card:hover {
+    border-color: var(--schaeffler-green);
+    box-shadow: var(--shadow-md);
+}
+
+.trend-card.selected {
+    border-color: var(--schaeffler-green);
+    background: var(--schaeffler-light);
+}
+
+.trend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.confidence-badge {
+    padding: 0.25rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.confidence-badge.high {
+    background: #d4edda;
+    color: #155724;
+}
+
+.confidence-badge.medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.confidence-badge.low {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Validation Results */
+.validation-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.validation-section h3 {
+    color: var(--schaeffler-green);
+    border-bottom: 2px solid var(--schaeffler-green);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Dashboard Styles */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+}
+
+.sidebar {
+    background: var(--schaeffler-dark);
+    color: white;
+    padding: 2rem 1rem;
+}
+
+.sidebar-logo {
+    height: 40px;
+    filter: brightness(0) invert(1);
+}
+
+.sidebar-nav {
+    margin-top: 2rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    margin: 0.25rem 0;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.nav-item.active {
+    background: var(--schaeffler-green);
+    color: white;
+}
+
+.nav-item .icon {
+    margin-right: 0.75rem;
+    font-size: 1.25rem;
+}
+
+.main-content {
+    padding: 2rem;
+    background: #f5f7fa;
+    overflow-y: auto;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.content-header h2 {
+    color: var(--schaeffler-dark);
+    font-weight: 600;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.metric-icon {
+    font-size: 2.5rem;
+    margin-right: 1.5rem;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--schaeffler-green);
+}
+
+.metric-label {
+    color: var(--schaeffler-gray);
+    padding: 0;
+    margin-left: 1rem;
+}
+
+/* Loading States */
+.loading-placeholder {
+    text-align: center;
+    color: var(--schaeffler-gray);
+    padding: 3rem;
+    font-style: italic;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Report Styles */
+.report-type-selector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.report-type-btn {
+    padding: 0.5rem 1.5rem;
+    border: 2px solid #e0e0e0;
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.report-type-btn.active {
+    background: var(--schaeffler-green);
+    color: white;
+    border-color: var(--schaeffler-green);
+}
+
+.report-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    min-height: 400px;
+}
+
+/* Weight Evolution Grid */
+.weight-evolution-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.weight-item {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid var(--schaeffler-green);
+}
+
+.weight-item strong {
+    color: var(--schaeffler-dark);
+}
+
+.weight-trend {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+.weight-trend.increasing {
+    color: #28a745;
+}
+
+.weight-trend.decreasing {
+    color: #dc3545;
+}
+
+.weight-trend.stable {
+    color: var(--schaeffler-gray);
+}
+
+/* Modal Overrides */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    background: var(--schaeffler-light);
+    border-bottom: 2px solid var(--schaeffler-green);
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-title {
+    color: var(--schaeffler-dark);
+    font-weight: 600;
+}
+
+/* Form Range */
+.form-range {
+    height: 8px;
+    border-radius: 4px;
+}
+
+.form-range::-webkit-slider-thumb {
+    background: var(--schaeffler-green);
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-range::-moz-range-thumb {
+    background: var(--schaeffler-green);
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-container {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .trend-card {
+        padding: 1rem;
+    }
+
+    .notification-container {
+        left: 20px;
+        right: 20px;
+    }
+
+    .notification {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .sidebar,
+    .header-actions,
+    .btn,
+    .notification-container {
+        display: none !important;
+    }
+
+    .main-content {
+        padding: 0;
+    }
+
+    .dashboard-section {
+        page-break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #dee2e6;
+    }
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { 
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to { 
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Utility Classes */
+.text-schaeffler {
+    color: var(--schaeffler-green) !important;
+}
+
+.bg-schaeffler-light {
+    background: var(--schaeffler-light) !important;
+}
+
+.border-schaeffler {
+    border-color: var(--schaeffler-green) !important;
+}
+
+.shadow-schaeffler {
+    box-shadow: 0 4px 12px rgba(0, 177, 64, 0.2) !important;
+}
+    font-size: 0.875rem;
+}
+
+.metric-trend {
+    font-size: 0.75rem;
+    color: var(--schaeffler-gray);
+    margin-top: 0.25rem;
+}
+
+/* Dashboard Sections */
+.dashboard-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 2rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h3 {
+    color: var(--schaeffler-dark);
+    font-weight: 600;
+}
+
+/* Alerts */
+.alerts-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.alert-item {
+    padding: 1rem;
+    border-left: 4px solid;
+    margin-bottom: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.alert-item:hover {
+    background: #e9ecef;
+}
+
+.alert-item.critical {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+}
+
+.alert-item.high {
+    border-left-color: #fd7e14;
+    background: #fff3cd;
+}
+
+.alert-item.medium {
+    border-left-color: #0dcaf0;
+    background: #cff4fc;
+}
+
+.alert-item.low {
+    border-left-color: #6c757d;
+}
+
+/* Analysis Cards */
+.analysis-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.analysis-card:hover {
+    border-color: var(--schaeffler-green);
+    box-shadow: var(--shadow-md);
+}
+
+/* Charts */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-top: 1rem;
+}
+
+/* Monitoring Status */
+.monitoring-status {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #dc3545;
+    margin-right: 0.5rem;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.active {
+    background: #28a745;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Notifications */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+}
+
+.notification {
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 1rem;
+    min-width: 300px;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-info {
+    border-left: 4px solid var(--schaeffler-blue);
+}
+
+.notification-success {
+    border-left: 4px solid #28a745;
+}
+
+.notification-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.notification-error {
+    border-left: 4px solid #dc3545;
+}
+
+.notification-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--schaeffler-gray);

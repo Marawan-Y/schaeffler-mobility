@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schaeffler Mobility Insight Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header with monitoring status -->
+        <div class="row">
+            <div class="col-12">
+                <div class="schaeffler-header d-flex justify-content-between align-items-center p-3">
+                    <div>
+                        <img src="{{ url_for('static', filename='img/schaeffler-logo.svg') }}" 
+                             alt="Schaeffler" class="logo">
+                        <h1 class="d-inline-block ms-3">Mobility Insight Platform</h1>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        {% if features.monitoring %}
+                        <div class="monitoring-status me-3">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Monitoring Active</span>
+                        </div>
+                        {% endif %}
+                        {% if session.step != "identification" %}
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light me-2">
+                            📊 Dashboard
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('chat') }}" class="btn btn-outline-light">
+                            🔄 New Analysis
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Main content -->
+        <div class="row mt-4">
+            <div class="col-12">
+                {% set phase = session.step %}
+
+                <!-- Progress indicator -->
+                <div class="progress-container mb-4">
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar bg-schaeffler" role="progressbar" 
+                             style="width: '{{ '25' if phase == 'identification' else '50' if phase == 'scouting' else '75' if phase == 'validation' else '100' }}%';">
+                            {% if phase == 'identification' %}Step 1: Identification
+                            {% elif phase == 'scouting' %}Step 2: Scouting
+                            {% elif phase == 'validation' %}Step 3: Validation
+                            {% else %}Step 4: Implementation{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 1: Identification -->
+                {% if phase == "identification" %}
+                <div class="card shadow-lg">
+                    <div class="card-body p-4">
+                        <h2 class="card-title mb-4">Trend Identification</h2>
+                        <p class="text-muted">Define your mobility use case and requirements to identify relevant trends.</p>
+                        
+                        <form method="post" class="needs-validation" id="identification-form" novalidate>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="use_case" class="form-label">Mobility Use Case</label>
+                                    <select id="use_case" name="use_case" class="form-select" required>
+                                        <option value="" disabled selected>Select Use Case</option>
+                                        <option value="Delivery bots mobility">Delivery Bots Mobility</option>
+                                        <option value="People mover mobility">People Mover Mobility</option>
+                                        <option value="Hub to Hub mobility">Hub to Hub Mobility</option>
+                                        <option value="Last Mile mobility">Last Mile Mobility</option>
+                                        <option value="Off-road mobility">Off-road Mobility</option>
+                                        <option value="Railway mobility">Railway Mobility</option>
+                                        <option value="Air mobility">Air Mobility</option>
+                                        <option value="Marine mobility">Marine Mobility</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select a use case.</div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="sector" class="form-label">Sector</label>
+                                    <select id="sector" name="sector" class="form-select" required disabled>
+                                        <option value="" disabled selected>Select Sector</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select a sector.</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label for="demand" class="form-label">Describe Your Demand</label>
+                                    <textarea name="demand" id="demand" class="form-control" rows="4" 
+                                              placeholder="Example: Need efficient and sustainable solutions for urban delivery with focus on autonomous navigation..." 
+                                              required maxlength="500"></textarea>
+                                    <div class="invalid-feedback">Please describe your demand.</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-schaeffler btn-lg">
+                                        🚀 Start Analysis
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Phase 2: Scouting -->
+                {% if phase == "scouting" %}
+                <div class="card shadow-lg">
+                    <div class="card-body p-4">
+                        <h2 class="card-title mb-4">Trend Scouting</h2>
+                        <p class="text-muted">Review identified trends and select one for detailed analysis.</p>
+                        
+                        <div class="trends-container">
+                            {% for i in range(session.remaining_trends|length) %}
+                            <div class="trend-card mb-3" data-trend-idx="{{ i }}">
+                                <div class="trend-header">
+                                    <h4>Trend {{ i+1 }}: {{ session.remaining_trends[i] }}</h4>
+                                    {% set block = session.blocks[session.titles.index(session.remaining_trends[i])] %}
+                                    {% set confidence = block|extract_confidence %}
+                                    <span class="confidence-badge {% if confidence > 0.7 %}high{% elif confidence > 0.5 %}medium{% else %}low{% endif %}">
+                                        {{ (confidence * 100)|round }}% Confidence
+                                    </span>
+                                </div>
+                                <div class="trend-content" data-markdown>
+                                    {{ block }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <form method="post" class="mt-4" id="scouting-form">
+                            <div class="row align-items-end">
+                                <div class="col-md-6">
+                                    <label for="selected_trend_idx" class="form-label">Select Trend</label>
+                                    <select name="selected_trend_idx" id="selected_trend_idx" 
+                                            class="form-select" required>
+                                        <option value="" disabled selected>Choose a trend...</option>
+                                        {% for i in range(session.remaining_trends|length) %}
+                                        <option value="{{ i }}">Trend {{ i+1 }}: {{ session.remaining_trends[i] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="btn-group w-100" role="group">
+                                        <button type="submit" name="action" value="validate" 
+                                                class="btn btn-outline-schaeffler">
+                                            🔍 Validate Trend
+                                        </button>
+                                        <button type="submit" name="action" value="implement" 
+                                                class="btn btn-schaeffler">
+                                            ⚡ Fast Track Implementation
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Phase 3: Validation -->
+                {% if phase == "validation" %}
+                <div class="card shadow-lg">
+                    <div class="card-body p-4">
+                        <h2 class="card-title mb-4">Trend Validation: {{ session.selected_trend }}</h2>
+                        
+                        <div class="validation-results">
+                            <!-- Assessment -->
+                            <div class="validation-section mb-4">
+                                <h3>📊 Comprehensive Assessment</h3>
+                                <div data-markdown>{{ session.validation_results[session.selected_trend].assessment }}</div>
+                            </div>
+                            
+                            <!-- Radar Positioning -->
+                            <div class="validation-section mb-4">
+                                <h3>🎯 Strategic Positioning</h3>
+                                <div data-markdown>{{ session.validation_results[session.selected_trend].radar }}</div>
+                            </div>
+                            
+                            <!-- PESTEL Analysis -->
+                            <div class="validation-section mb-4">
+                                <h3>🌍 PESTEL Analysis</h3>
+                                <div data-markdown>{{ session.validation_results[session.selected_trend].pestel }}</div>
+                            </div>
+                        </div>
+                        
+                        <form method="post" class="mt-4" id="validation-form">
+                            <div class="d-flex gap-3">
+                                {% if session.remaining_trends %}
+                                <button name="action" value="validate_more" 
+                                        class="btn btn-outline-schaeffler">
+                                    ← Validate Another Trend
+                                </button>
+                                {% endif %}
+                                <button name="action" value="implement" 
+                                        class="btn btn-schaeffler btn-lg flex-grow-1">
+                                    ✅ Proceed to Implementation
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Phase 4: Implementation -->
+                {% if phase == "implementation" %}
+                <div class="card shadow-lg" id="implementation-card">
+                    <div class="card-body p-4">
+                        <h2 class="card-title mb-4">Implementation Roadmap</h2>
+                        
+                        <div class="implementation-results">
+                            <!-- Market-Ready Solution -->
+                            <div class="implementation-section mb-5">
+                                <h3>🚀 Market-Ready Solution</h3>
+                                <div data-markdown>{{ session.market_solution }}</div>
+                            </div>
+                            
+                            <!-- Strategic Partners -->
+                            <div class="implementation-section">
+                                <h3>🤝 Strategic Partners</h3>
+                                <div data-markdown>{{ session.partners }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 d-flex gap-3">
+                            {% if session.remaining_trends %}
+                            <a href="{{ url_for('chat') }}?continue=true" class="btn btn-outline-schaeffler">
+                                🔄 Analyze More Trends
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-schaeffler">
+                                📊 View Dashboard
+                            </a>
+                            <button type="button" class="btn btn-success" onclick="exportImplementation()">
+                                📥 Export Plan
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="printSection('implementation-card')">
+                                🖨️ Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time notifications -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    
+    <script>
+        // Initialize marked.js
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+        }
+
+        // Sector mapping
+        const sectorsByUseCase = {
+            "Delivery bots mobility": ["Micro Mobility", "Urban Logistics"],
+            "People mover mobility": ["RoboTaxi", "RoboShuttle", "Urban Transit"],
+            "Hub to Hub mobility": ["Autonomous Mega Trucks", "Autonomous Light Commercial Vehicles (LCV)", "Freight"],
+            "Last Mile mobility": ["Urban Delivery", "E-commerce Logistics", "Suburban Delivery"],
+            "Off-road mobility": ["Agribots", "Construction", "Mining"],
+            "Railway mobility": ["Automated Metros & Trains", "High-Speed Rail", "Freight Rail"],
+            "Air mobility": ["Drones", "eVTOL Aircraft", "Urban Air Mobility"],
+            "Marine mobility": ["Autonomous Vessels", "Port Automation", "Coastal Shipping"]
+        };
+
+        // Dynamic sector loading
+        const useCaseEl = document.getElementById("use_case");
+        const sectorEl = document.getElementById("sector");
+        
+        if (useCaseEl && sectorEl) {
+            useCaseEl.addEventListener("change", function() {
+                sectorEl.innerHTML = '<option value="" disabled selected>Select Sector</option>';
+                sectorEl.disabled = false;
+                
+                const sectors = sectorsByUseCase[this.value] || [];
+                sectors.forEach(sector => {
+                    const option = document.createElement("option");
+                    option.value = option.textContent = sector;
+                    sectorEl.appendChild(option);
+                });
+            });
+        }
+
+        // Form validation
+        (function() {
+            'use strict';
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+
+        // Socket.IO connection for real-time updates
+        {% if features.monitoring %}
+        const socket = io();
+        
+        socket.on('connect', function() {
+            console.log('Connected to monitoring system');
+            updateMonitoringStatus(true);
+        });
+
+        socket.on('disconnect', function() {
+            updateMonitoringStatus(false);
+        });
+
+        socket.on('new_alert', function(data) {
+            showNotification(`New Alert: ${data.title}`, data.severity);
+        });
+
+        socket.on('new_analysis', function(data) {
+            showNotification(`New Analysis Available: ${data.title}`, 'info');
+        });
+
+        function updateMonitoringStatus(connected) {
+            const statusDot = document.querySelector('.status-dot');
+            const statusText = document.querySelector('.status-text');
+            if (statusDot && statusText) {
+                if (connected) {
+                    statusDot.classList.add('active');
+                    statusText.textContent = 'Monitoring Active';
+                } else {
+                    statusDot.classList.remove('active');
+                    statusText.textContent = 'Monitoring Offline';
+                }
+            }
+        }
+        {% endif %}
+
+        // Notification system
+        function showNotification(message, severity = 'info') {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${severity} show`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span>${message}</span>
+                    <button class="notification-close" onclick="closeNotification(this)">×</button>
+                </div>
+            `;
+            container.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        function closeNotification(button) {
+            const notification = button.closest('.notification');
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }
+
+        // Trend card interactions
+        document.querySelectorAll('.trend-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const idx = this.dataset.trendIdx;
+                document.getElementById('selected_trend_idx').value = idx;
+                
+                // Highlight selected card
+                document.querySelectorAll('.trend-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // Export implementation plan
+        function exportImplementation() {
+            const content = document.querySelector('.implementation-results').innerHTML;
+            schaefflerChat.exportContent('implementation-card', 
+                `schaeffler-implementation-${new Date().toISOString().split('T')[0]}.html`);
+        }
+
+        // Print section function
+        function printSection(elementId) {
+            if (window.schaefflerChat && window.schaefflerChat.printSection) {
+                window.schaefflerChat.printSection(elementId);
+            }
+        }
+
+        // Custom confidence extraction filter (for Jinja2)
+        window.extractConfidence = function(block) {
+            const match = block.match(/Confidence\s*Score:\s*([0-9.]+)/i);
+            return match ? parseFloat(match[1]) : 0.5;
+        };
+
+        // Render markdown content after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only render if marked is available and we're not in Flask's safe mode
+            if (typeof marked !== 'undefined') {
+                document.querySelectorAll('[data-markdown]').forEach(element => {
+                    const content = element.textContent || element.innerHTML;
+                    // Only parse if content doesn't already contain HTML tags
+                    if (!content.includes('<p>') && !content.includes('<h')) {
+                        element.innerHTML = marked.parse(content);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
