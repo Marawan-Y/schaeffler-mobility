@@ -12,7 +12,7 @@ from functools import wraps
 import pymysql
 import markdown as md
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, session, flash, jsonify, abort
+from flask import Flask, render_template, request, session, flash, jsonify, abort, redirect, url_for
 from flask_socketio import SocketIO, emit
 import openai
 from openai import OpenAI
@@ -29,7 +29,7 @@ from utils.helpers import extract_confidence_score, split_trend_blocks
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "schaeffler_mobility_2024")
-# app.jinja_env.filters["markdown"] = md.markdown
+
 def render_markdown(text):
     # enable the "tables" (and fenced code, etc.) extensions
     rendered_html = md.markdown(text or "", extensions=["tables", "fenced_code", "nl2br"])
@@ -85,9 +85,9 @@ FEATURES_ENABLED = {
     'auto_reports': os.getenv('ENABLE_AUTO_REPORTS', 'true').lower() == 'true'
 }
 
-MONITORING_INTERVAL = int(os.getenv('MONITORING_INTERVAL', 300))  # 5 minutes
-ALERT_THRESHOLD = float(os.getenv('ALERT_THRESHOLD', 0.7))
-APPROVAL_THRESHOLD = float(os.getenv('APPROVAL_THRESHOLD', 0.8))
+MONITORING_INTERVAL = int(os.getenv('MONITORING_INTERVAL', '300'))
+ALERT_THRESHOLD = float(os.getenv('ALERT_THRESHOLD', '0.7'))
+APPROVAL_THRESHOLD = float(os.getenv('APPROVAL_THRESHOLD', '0.8'))
 
 # ─── Enhanced Application Class ─────────────────────────────────────────────
 class EnhancedMobilityApp:
@@ -413,327 +413,6 @@ Please provide a structured assessment from Schaeffler's perspective:
 Provide a 2-3 sentence executive summary for Schaeffler's leadership."""
     return call_llm(p, max_tokens=1200)
 
-def partners_navigation(title, block):
-    """Strategic partnerships for Schaeffler"""
-    p = f"""{block}
-
-## Strategic Partnership Analysis for Schaeffler: "{title}"
-
-| Partner Category | Recommended Partner | Strategic Value | Collaboration Model | Priority |
-|-----------------|-------------------|-----------------|-------------------|----------|
-| Technology Partner | [Company] | [Value to Schaeffler] | [JV/License/Co-dev] | [H/M/L] |
-| OEM Customer | [Company] | [Market access] | [Supply agreement] | [H/M/L] |
-| Research Institute | [Institution] | [Innovation] | [Joint research] | [H/M/L] |
-| Startup/Innovator | [Company] | [Disruptive tech] | [Investment/Acquisition] | [H/M/L] |
-| System Integrator | [Company] | [Market reach] | [Channel partnership] | [H/M/L] |
-
-## Partnership Execution Plan
-- **Immediate Actions**: [first 30 days]
-- **Partnership Terms**: [key negotiation points]
-- **Success Criteria**: [measurable outcomes]
-- **Risk Management**: [mitigation strategies]"""
-    return call_llm(p, max_tokens=800)
-
-# ─── Original Routes (Enhanced) ─────────────────────────────────────────────
-@app.route("/", methods=["GET", "POST"])
-def chat():
-    """Main workflow route - enhanced with monitoring integration"""
-    if request.method == "GET":
-        session.clear()
-        session["step"] = "identification"
-        session["authenticated"] = True  # Simple auth for demo
-        return render_template("index.html", step="identification", features=FEATURES_ENABLED)
-
-    step = session.get("step")
-
-    try:
-        # Phase 1: Identification
-        if step == "identification":
-            uc = request.form.get("use_case", "").strip()
-            sec = request.form.get("sector", "").strip()
-            dem = request.form.get("demand", "").strip()
-            
-            if not (uc and sec and dem):
-                flash("Please fill in all fields.", "warning")
-                return render_template("index.html", step="identification", features=FEATURES_ENABLED)
-
-            # Generate trends
-            raw = generate_trends(uc, sec, dem)
-            titles, blocks = split_trend_blocks(raw)
-            
-            if not titles:
-                flash("Could not generate trends. Please try again.", "error")
-                return render_template("index.html", step="identification", features=FEATURES_ENABLED)
-            
-            trends_md = "\n\n".join(f"### Trend {i+1}: {t}\n{blocks[i]}"
-                                   for i, t in enumerate(titles))
-
-            session.update({
-                "step": "scouting",
-                "use_case": uc, "sector": sec, "demand": dem,
-                "titles": titles, "blocks": blocks, "trends_md": trends_md,
-                "remaining_trends": titles.copy(), "validation_results": {}
-            })
-            
-            # Log to monitoring if enabled
-            if FEATURES_ENABLED['monitoring']:
-                enhanced_app.monitor.log_user_query(uc, sec, dem)
-            
-            return render_template("index.html", step="scouting", features=FEATURES_ENABLED)
-
-        # Phase 2: Scouting
-        elif step == "scouting":
-            idx_str = request.form.get("selected_trend_idx", "")
-            action = request.form.get("action", "")
-            
-            if not (idx_str.isdigit() and action in ("validate", "implement")):
-                flash("Please select a trend and action.", "warning")
-                return render_template("index.html", step="scouting", features=FEATURES_ENABLED)
-
-            idx = int(idx_str)
-            rem = session.get("remaining_trends", [])
-            
-            if idx < 0 or idx >= len(rem):
-                flash("Invalid trend selection.", "warning")
-                return render_template("index.html", step="scouting", features=FEATURES_ENABLED)
-
-            sel = rem.pop(idx)
-            titles = session.get("titles", [])
-            blocks = session.get("blocks", [])
-            
-            block = blocks[titles.index(sel)]
-            session["selected_trend"] = sel
-
-            if action == "validate":
-                ass = assess_trend(sel, block)
-                rad = radar_positioning(sel, ass)
-                pes = pestel_driver(sel, block)
-                
-                session["validation_results"][sel] = {
-                    "assessment": ass, "radar": rad, "pestel": pes
-                }
-                session["step"] = "validation"
-                return render_template("index.html", step="validation", features=FEATURES_ENABLED)
-
-            # Direct implementation
-            msol = market_ready_solution(sel, block)
-            prts = partners_navigation(sel, block)
-            
-            # Save to database
-            save_to_db(
-                session["use_case"], session["sector"], session["demand"],
-                session["trends_md"], sel, "", "", "", msol, prts,
-                titles, blocks, DB_CONFIG
-            )
-            
-            session["market_solution"] = msol
-            session["partners"] = prts
-            session["step"] = "implementation"
-            return render_template("index.html", step="implementation", features=FEATURES_ENABLED)
-
-        # Phase 3: Validation
-        elif step == "validation":
-            action = request.form.get("action", "")
-            sel = session.get("selected_trend", "")
-            titles = session.get("titles", [])
-            blocks = session.get("blocks", [])
-            
-            if not sel or sel not in titles:
-                flash("No trend selected.", "error")
-                session["step"] = "scouting"
-                return render_template("index.html", step="scouting", features=FEATURES_ENABLED)
-            
-            block = blocks[titles.index(sel)]
-
-            if action == "validate_more":
-                session["step"] = "scouting"
-                return render_template("index.html", step="scouting", features=FEATURES_ENABLED)
-
-            # Proceed to implementation
-            msol = market_ready_solution(sel, block)
-            prts = partners_navigation(sel, block)
-            vr = session["validation_results"].get(sel, {})
-            
-            # Save to database
-            save_to_db(
-                session["use_case"], session["sector"], session["demand"],
-                session["trends_md"], sel,
-                vr.get("assessment", ""), vr.get("radar", ""), vr.get("pestel", ""),
-                msol, prts, titles, blocks, DB_CONFIG
-            )
-            
-            session["market_solution"] = msol
-            session["partners"] = prts
-            session["step"] = "implementation"
-            return render_template("index.html", step="implementation", features=FEATURES_ENABLED)
-
-    except Exception as e:
-        print(f"Error in chat route: {e}")
-        flash(f"An error occurred: {str(e)}", "error")
-        session["step"] = "identification"
-        return render_template("index.html", step="identification", features=FEATURES_ENABLED)
-
-    # Fallback
-    session["step"] = "identification"
-    return render_template("index.html", step="identification", features=FEATURES_ENABLED)
-
-# ─── Dashboard Route ────────────────────────────────────────────────────────
-@app.route("/dashboard")
-def dashboard():
-    """Enhanced monitoring dashboard"""
-    if not session.get('authenticated'):
-        flash("Please complete the identification process first.", "info")
-        return redirect(url_for('chat'))
-    
-    return render_template("dashboard.html", features=FEATURES_ENABLED)
-
-# ─── API Routes for Enhanced Features ───────────────────────────────────────
-@app.route('/api/alerts')
-@require_auth
-def get_alerts():
-    """Get current alerts"""
-    if not FEATURES_ENABLED['monitoring']:
-        return jsonify({'error': 'Monitoring not enabled'}), 404
-    
-    alerts = enhanced_app.monitor.get_recent_alerts(limit=20)
-    return jsonify([alert.to_dict() for alert in alerts])
-
-@app.route('/api/pending-analyses')
-@require_auth
-def get_pending_analyses():
-    """Get analyses pending approval"""
-    if not FEATURES_ENABLED['auto_analysis']:
-        return jsonify({'error': 'Auto-analysis not enabled'}), 404
-    
-    analyses = enhanced_app.analyzer.get_pending_analyses()
-    return jsonify([analysis.to_dict() for analysis in analyses])
-
-@app.route('/api/feedback', methods=['POST'])
-@require_auth
-def submit_feedback():
-    """Submit feedback on analysis"""
-    if not FEATURES_ENABLED['hfrl']:
-        return jsonify({'error': 'HFRL not enabled'}), 404
-    
-    data = request.json
-    analysis_id = data.get('analysis_id')
-    feedback_data = data.get('feedback')
-    
-    if not analysis_id or not feedback_data:
-        return jsonify({'error': 'Missing required data'}), 400
-    
-    # Process feedback
-    enhanced_app.feedback_system.record_feedback(
-        analysis_id,
-        feedback_data,
-        session.get('user_id', 'anonymous')
-    )
-    
-    # Update analysis status if approved
-    if feedback_data.get('type') == 'approval':
-        enhanced_app.analyzer.approve_analysis(analysis_id)
-    
-    return jsonify({'status': 'success'})
-
-@app.route('/api/weekly-report')
-@require_auth
-def get_weekly_report():
-    """Get weekly report"""
-    if not FEATURES_ENABLED['auto_reports']:
-        return jsonify({'error': 'Auto-reports not enabled'}), 404
-    
-    report = enhanced_app.report_generator.get_latest_report('weekly')
-    if report:
-        return jsonify(report.to_dict())
-    
-    # Generate new report if none exists
-    report = enhanced_app.report_generator.generate_report('weekly')
-    return jsonify(report.to_dict())
-
-@app.route('/api/learning-insights')
-@require_auth
-def get_learning_insights():
-    """Get insights from reinforcement learning"""
-    if not FEATURES_ENABLED['hfrl']:
-        return jsonify({'error': 'HFRL not enabled'}), 404
-    
-    insights = enhanced_app.feedback_system.get_learning_insights()
-    return jsonify(insights)
-
-@app.route('/api/metrics')
-@require_auth
-def get_metrics():
-    """Get system metrics"""
-    metrics = {
-        'active_alerts': len(enhanced_app.active_alerts) if FEATURES_ENABLED['monitoring'] else 0,
-        'pending_analyses': len(enhanced_app.pending_analyses) if FEATURES_ENABLED['auto_analysis'] else 0,
-        'total_feedbacks': enhanced_app.feedback_system.get_total_feedbacks() if FEATURES_ENABLED['hfrl'] else 0,
-        'avg_confidence': enhanced_app.analyzer.get_average_confidence() if FEATURES_ENABLED['auto_analysis'] else 0
-    }
-    return jsonify(metrics)
-
-# ─── WebSocket Events ───────────────────────────────────────────────────────
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection"""
-    print(f'Client connected: {request.sid}')
-    emit('connected', {
-        'message': 'Connected to Schaeffler Mobility Insight Platform',
-        'features': FEATURES_ENABLED
-    })
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Handle client disconnection"""
-    print(f'Client disconnected: {request.sid}')
-
-@socketio.on('request_analysis')
-def handle_analysis_request(data):
-    """Handle manual analysis request"""
-    if not FEATURES_ENABLED['auto_analysis']:
-        emit('error', {'message': 'Auto-analysis not enabled'})
-        return
-    
-    trend_id = data.get('trend_id')
-    if trend_id:
-        # Trigger analysis for specific trend
-        analysis = enhanced_app.analyzer.analyze_trend_by_id(trend_id)
-        emit('analysis_complete', analysis.to_dict())
-
-@socketio.on('manual_alert')
-def handle_manual_alert(data):
-    """Handle manually created alert"""
-    if not FEATURES_ENABLED['monitoring']:
-        emit('error', {'message': 'Monitoring not enabled'})
-        return
-    
-    alert = enhanced_app.monitor.create_manual_alert(
-        title=data.get('title'),
-        description=data.get('description'),
-        category=data.get('category', 'manual'),
-        severity=data.get('severity', 'medium')
-    )
-    
-    # Broadcast to all clients
-    socketio.emit('new_alert', alert.to_dict())
-
-# ─── Error Handlers ─────────────────────────────────────────────────────────
-@app.errorhandler(404)
-def not_found_error(error):
-    return render_template('404.html'), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    return render_template('500.html'), 500
-
-# ─── Main ───────────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    # Start enhanced features
-    enhanced_app.start()
-    
-    # Run Flask with SocketIO
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
-
 def radar_positioning(title, assessment):
     """Strategic positioning for Schaeffler"""
     p = f"""{assessment}
@@ -822,3 +501,480 @@ def market_ready_solution(title, block):
 - **Milestones**: [key achievement dates]
 - **Review Process**: [governance structure]"""
     return call_llm(p, max_tokens=1200)
+
+def partners_navigation(title, block):
+    """Strategic partnerships for Schaeffler"""
+    p = f"""{block}
+
+## Strategic Partnership Analysis for Schaeffler: "{title}"
+
+| Partner Category | Recommended Partner | Strategic Value | Collaboration Model | Priority |
+|-----------------|-------------------|-----------------|-------------------|----------|
+| Technology Partner | [Company] | [Value to Schaeffler] | [JV/License/Co-dev] | [H/M/L] |
+| OEM Customer | [Company] | [Market access] | [Supply agreement] | [H/M/L] |
+| Research Institute | [Institution] | [Innovation] | [Joint research] | [H/M/L] |
+| Startup/Innovator | [Company] | [Disruptive tech] | [Investment/Acquisition] | [H/M/L] |
+| System Integrator | [Company] | [Market reach] | [Channel partnership] | [H/M/L] |
+
+## Partnership Execution Plan
+- **Immediate Actions**: [first 30 days]
+- **Partnership Terms**: [key negotiation points]
+- **Success Criteria**: [measurable outcomes]
+- **Risk Management**: [mitigation strategies]"""
+    return call_llm(p, max_tokens=800)
+
+# ─── MAIN ROUTES ────────────────────────────────────────────────────────────
+
+@app.route("/")
+def index():
+    """Redirect to dashboard as the main page"""
+    return redirect(url_for('dashboard'))
+
+@app.route("/chat", methods=["GET", "POST"])
+def chat():
+    """Main workflow route - enhanced with monitoring integration"""
+    if request.method == "GET":
+        # Check if continuing from previous analysis
+        if request.args.get('continue') == 'true' and session.get('remaining_trends'):
+            session["step"] = "scouting"
+        else:
+            # New analysis - clear session
+            session.clear()
+            session["step"] = "identification"
+            session["authenticated"] = True  # Simple auth for demo
+        
+        return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+    step = session.get("step")
+
+    try:
+        # Phase 1: Identification
+        if step == "identification":
+            uc = request.form.get("use_case", "").strip()
+            sec = request.form.get("sector", "").strip()
+            dem = request.form.get("demand", "").strip()
+            
+            if not (uc and sec and dem):
+                flash("Please fill in all fields.", "warning")
+                return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+            # Generate trends
+            raw = generate_trends(uc, sec, dem)
+            titles, blocks = split_trend_blocks(raw)
+            
+            if not titles:
+                flash("Could not generate trends. Please try again.", "error")
+                return render_template("index.html", session=session, features=FEATURES_ENABLED)
+            
+            trends_md = "\n\n".join(f"### Trend {i+1}: {t}\n{blocks[i]}"
+                                   for i, t in enumerate(titles))
+
+            session.update({
+                "step": "scouting",
+                "use_case": uc, "sector": sec, "demand": dem,
+                "titles": titles, "blocks": blocks, "trends_md": trends_md,
+                "remaining_trends": titles.copy(), "validation_results": {}
+            })
+            
+            # Log to monitoring if enabled
+            if FEATURES_ENABLED['monitoring'] and enhanced_app.monitor:
+                enhanced_app.monitor.log_user_query(uc, sec, dem)
+            
+            return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+        # Phase 2: Scouting
+        elif step == "scouting":
+            idx_str = request.form.get("selected_trend_idx", "")
+            action = request.form.get("action", "")
+            
+            if not (idx_str.isdigit() and action in ("validate", "implement")):
+                flash("Please select a trend and action.", "warning")
+                return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+            idx = int(idx_str)
+            rem = session.get("remaining_trends", [])
+            
+            if idx < 0 or idx >= len(rem):
+                flash("Invalid trend selection.", "warning")
+                return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+            sel = rem.pop(idx)
+            titles = session.get("titles", [])
+            blocks = session.get("blocks", [])
+            
+            block = blocks[titles.index(sel)]
+            session["selected_trend"] = sel
+            session["remaining_trends"] = rem  # Update remaining trends
+            session.modified = True
+
+            if action == "validate":
+                ass = assess_trend(sel, block)
+                rad = radar_positioning(sel, ass)
+                pes = pestel_driver(sel, block)
+                
+                if "validation_results" not in session:
+                    session["validation_results"] = {}
+                    
+                session["validation_results"][sel] = {
+                    "assessment": ass, "radar": rad, "pestel": pes
+                }
+                session["step"] = "validation"
+                session.modified = True
+                return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+            # Direct implementation
+            msol = market_ready_solution(sel, block)
+            prts = partners_navigation(sel, block)
+            
+            # Save to database
+            save_to_db(
+                session["use_case"], session["sector"], session["demand"],
+                session["trends_md"], sel, "", "", "", msol, prts,
+                titles, blocks, DB_CONFIG
+            )
+            
+            session["market_solution"] = msol
+            session["partners"] = prts
+            session["step"] = "implementation"
+            session.modified = True
+            return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+        # Phase 3: Validation
+        elif step == "validation":
+            action = request.form.get("action", "")
+            sel = session.get("selected_trend", "")
+            titles = session.get("titles", [])
+            blocks = session.get("blocks", [])
+            
+            if not sel or sel not in titles:
+                flash("No trend selected.", "error")
+                session["step"] = "scouting"
+                return render_template("index.html", session=session, features=FEATURES_ENABLED)
+            
+            block = blocks[titles.index(sel)]
+
+            if action == "validate_more":
+                session["step"] = "scouting"
+                return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+            # Proceed to implementation
+            msol = market_ready_solution(sel, block)
+            prts = partners_navigation(sel, block)
+            vr = session.get("validation_results", {}).get(sel, {})
+            
+            # Save to database
+            save_to_db(
+                session["use_case"], session["sector"], session["demand"],
+                session["trends_md"], sel,
+                vr.get("assessment", ""), vr.get("radar", ""), vr.get("pestel", ""),
+                msol, prts, titles, blocks, DB_CONFIG
+            )
+            
+            session["market_solution"] = msol
+            session["partners"] = prts
+            session["step"] = "implementation"
+            session.modified = True
+            return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+    except Exception as e:
+        print(f"Error in chat route: {e}")
+        flash(f"An error occurred: {str(e)}", "error")
+        session["step"] = "identification"
+        return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+    # Fallback
+    session["step"] = "identification"
+    return render_template("index.html", session=session, features=FEATURES_ENABLED)
+
+# ─── Dashboard Route ────────────────────────────────────────────────────────
+@app.route("/dashboard")
+def dashboard():
+    """Enhanced monitoring dashboard"""
+    # Ensure user is authenticated
+    if not session.get('authenticated'):
+        session['authenticated'] = True  # Auto-authenticate for demo
+    
+    return render_template("dashboard.html", features=FEATURES_ENABLED)
+
+# ─── Additional Pages Routes ────────────────────────────────────────────────
+@app.route("/analyses")
+def analyses():
+    """Trend analyses page"""
+    if not session.get('authenticated'):
+        return redirect(url_for('dashboard'))
+    
+    return render_template("analyses.html", features=FEATURES_ENABLED)
+
+@app.route("/reports")
+def reports():
+    """Reports page"""
+    if not session.get('authenticated'):
+        return redirect(url_for('dashboard'))
+    
+    return render_template("reports.html", features=FEATURES_ENABLED)
+
+@app.route("/ai_learning")
+def ai_learning():
+    """AI Learning page"""
+    if not session.get('authenticated'):
+        return redirect(url_for('dashboard'))
+    
+    return render_template("ai_learning.html", features=FEATURES_ENABLED)
+
+@app.route("/alerts")
+def alerts():
+    """Alerts page"""
+    if not session.get('authenticated'):
+        return redirect(url_for('dashboard'))
+    
+    return render_template("alerts.html", features=FEATURES_ENABLED)
+
+# ─── API Routes for Enhanced Features ───────────────────────────────────────
+@app.route('/api/alerts')
+@require_auth
+def get_alerts():
+    """Get current alerts"""
+    if not FEATURES_ENABLED['monitoring']:
+        return jsonify({'error': 'Monitoring not enabled'}), 404
+    
+    try:
+        alerts = enhanced_app.monitor.get_recent_alerts(limit=20) if enhanced_app.monitor else []
+        return jsonify([alert.to_dict() for alert in alerts])
+    except:
+        return jsonify([])  # Return empty list if error
+
+@app.route('/api/pending-analyses')
+@require_auth
+def get_pending_analyses():
+    """Get analyses pending approval"""
+    if not FEATURES_ENABLED['auto_analysis']:
+        return jsonify({'error': 'Auto-analysis not enabled'}), 404
+    
+    try:
+        analyses = enhanced_app.analyzer.get_pending_analyses() if enhanced_app.analyzer else []
+        return jsonify([analysis.to_dict() for analysis in analyses])
+    except:
+        return jsonify([])
+
+@app.route('/api/feedback', methods=['POST'])
+@require_auth
+def submit_feedback():
+    """Submit feedback on analysis"""
+    if not FEATURES_ENABLED['hfrl']:
+        return jsonify({'error': 'HFRL not enabled'}), 404
+    
+    data = request.json
+    analysis_id = data.get('analysis_id')
+    feedback_data = data.get('feedback')
+    
+    if not analysis_id or not feedback_data:
+        return jsonify({'error': 'Missing required data'}), 400
+    
+    try:
+        # Process feedback
+        if enhanced_app.feedback_system:
+            enhanced_app.feedback_system.record_feedback(
+                analysis_id,
+                feedback_data,
+                session.get('user_id', 'anonymous')
+            )
+        
+        # Update analysis status if approved
+        if feedback_data.get('type') == 'approval' and enhanced_app.analyzer:
+            enhanced_app.analyzer.approve_analysis(analysis_id)
+        
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/weekly-report')
+@require_auth
+def get_weekly_report():
+    """Get weekly report"""
+    if not FEATURES_ENABLED['auto_reports']:
+        return jsonify({'error': 'Auto-reports not enabled'}), 404
+    
+    try:
+        report = enhanced_app.report_generator.get_latest_report('weekly') if enhanced_app.report_generator else None
+        if report:
+            return jsonify(report.to_dict())
+        
+        # Generate new report if none exists
+        if enhanced_app.report_generator:
+            report = enhanced_app.report_generator.generate_report('weekly')
+            return jsonify(report.to_dict())
+        else:
+            return jsonify({'error': 'Report generator not available'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/learning-insights')
+@require_auth
+def get_learning_insights():
+    """Get insights from reinforcement learning"""
+    if not FEATURES_ENABLED['hfrl']:
+        return jsonify({'error': 'HFRL not enabled'}), 404
+    
+    try:
+        insights = enhanced_app.feedback_system.get_learning_insights() if enhanced_app.feedback_system else {}
+        return jsonify(insights)
+    except:
+        return jsonify({})
+
+@app.route('/api/metrics')
+@require_auth
+def get_metrics():
+    """Get system metrics"""
+    try:
+        metrics = {
+            'active_alerts': len(enhanced_app.active_alerts) if FEATURES_ENABLED['monitoring'] else 0,
+            'pending_analyses': len(enhanced_app.pending_analyses) if FEATURES_ENABLED['auto_analysis'] else 0,
+            'total_feedbacks': enhanced_app.feedback_system.get_total_feedbacks() if FEATURES_ENABLED['hfrl'] and enhanced_app.feedback_system else 0,
+            'avg_confidence': enhanced_app.analyzer.get_average_confidence() if FEATURES_ENABLED['auto_analysis'] and enhanced_app.analyzer else 0
+        }
+        return jsonify(metrics)
+    except Exception as e:
+        return jsonify({
+            'active_alerts': 0,
+            'pending_analyses': 0,
+            'total_feedbacks': 0,
+            'avg_confidence': 0
+        })
+
+@app.route('/api/dashboard-data')
+@require_auth
+def get_dashboard_data():
+    """Get all dashboard data in one call"""
+    try:
+        data = {
+            'metrics': {
+                'active_alerts': len(enhanced_app.active_alerts) if FEATURES_ENABLED['monitoring'] else 0,
+                'trends_analyzed': session.get('trends_analyzed_count', 0),
+                'avg_confidence': enhanced_app.analyzer.get_average_confidence() if FEATURES_ENABLED['auto_analysis'] and enhanced_app.analyzer else 0,
+                'pending_approval': len(enhanced_app.pending_analyses) if FEATURES_ENABLED['auto_analysis'] else 0
+            },
+            'alerts': [],
+            'recent_analyses': [],
+            'trend_activity': {
+                'dates': [],
+                'alerts': [],
+                'analyses': []
+            }
+        }
+        
+        # Get recent alerts
+        if FEATURES_ENABLED['monitoring'] and enhanced_app.monitor:
+            try:
+                alerts = enhanced_app.monitor.get_recent_alerts(limit=5)
+                data['alerts'] = [alert.to_dict() for alert in alerts]
+            except:
+                pass
+        
+        # Get recent analyses
+        if FEATURES_ENABLED['auto_analysis'] and enhanced_app.analyzer:
+            try:
+                analyses = enhanced_app.analyzer.get_recent_analyses(limit=5)
+                data['recent_analyses'] = [analysis.to_dict() for analysis in analyses]
+            except:
+                pass
+        
+        return jsonify(data)
+    except Exception as e:
+        print(f"Dashboard data error: {e}")
+        return jsonify({
+            'metrics': {
+                'active_alerts': 0,
+                'trends_analyzed': 0,
+                'avg_confidence': 0,
+                'pending_approval': 0
+            },
+            'alerts': [],
+            'recent_analyses': [],
+            'trend_activity': {
+                'dates': [],
+                'alerts': [],
+                'analyses': []
+            }
+        })
+
+# ─── WebSocket Events ───────────────────────────────────────────────────────
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    print(f'Client connected: {request.sid}')
+    emit('connected', {
+        'message': 'Connected to Schaeffler Mobility Insight Platform',
+        'features': FEATURES_ENABLED
+    })
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    print(f'Client disconnected: {request.sid}')
+
+@socketio.on('request_analysis')
+def handle_analysis_request(data):
+    """Handle manual analysis request"""
+    if not FEATURES_ENABLED['auto_analysis']:
+        emit('error', {'message': 'Auto-analysis not enabled'})
+        return
+    
+    trend_id = data.get('trend_id')
+    if trend_id and enhanced_app.analyzer:
+        try:
+            # Trigger analysis for specific trend
+            analysis = enhanced_app.analyzer.analyze_trend_by_id(trend_id)
+            emit('analysis_complete', analysis.to_dict())
+        except Exception as e:
+            emit('error', {'message': str(e)})
+
+@socketio.on('manual_alert')
+def handle_manual_alert(data):
+    """Handle manually created alert"""
+    if not FEATURES_ENABLED['monitoring']:
+        emit('error', {'message': 'Monitoring not enabled'})
+        return
+    
+    if enhanced_app.monitor:
+        try:
+            alert = enhanced_app.monitor.create_manual_alert(
+                title=data.get('title'),
+                description=data.get('description'),
+                category=data.get('category', 'manual'),
+                severity=data.get('severity', 'medium')
+            )
+            
+            # Broadcast to all clients
+            socketio.emit('new_alert', alert.to_dict())
+        except Exception as e:
+            emit('error', {'message': str(e)})
+
+@socketio.on('refresh_dashboard')
+def handle_refresh_dashboard():
+    """Handle dashboard refresh request"""
+    try:
+        # Emit updated data
+        emit('dashboard_update', {
+            'timestamp': datetime.now().isoformat(),
+            'active_alerts': len(enhanced_app.active_alerts),
+            'pending_analyses': len(enhanced_app.pending_analyses)
+        })
+    except Exception as e:
+        emit('error', {'message': str(e)})
+
+# ─── Error Handlers ─────────────────────────────────────────────────────────
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template('500.html'), 500
+
+# ─── Main ───────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    # Start enhanced features
+    enhanced_app.start()
+    
+    # Run Flask with SocketIO
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
